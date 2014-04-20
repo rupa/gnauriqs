@@ -1,0 +1,126 @@
+#!/usr/bin/env python
+
+import imp
+import inspect
+import os
+import socket
+import sys
+
+from datetime import datetime
+from time import sleep
+from traceback import format_exc
+
+from redis import StrictRedis
+
+# Settings
+HOST = ''
+PORT = 6667
+NICK = os.path.basename(__file__)
+REAL_NAME = ''
+CHANNELS = []
+ADMINS = []
+
+PATH = os.path.abspath(os.path.dirname(sys.argv[0]))
+
+FUNC_FILE = '{0}/funcs.py'.format(PATH)
+
+STORAGE = StrictRedis()
+
+SOCKET = socket.create_connection((HOST, PORT))
+SOCKET.send('NICK {0}\r\n'.format(NICK))
+SOCKET.send('USER {0} 0 * :{1}\r\n'.format(NICK, REAL_NAME))
+
+#LOG_FILE = open('bawt.log', 'a')
+
+def log(msg):
+    #LOG_FILE.write(u'{0} {1}\n'.format(datetime.now(), msg))
+    print u'{0}'.format(msg)
+
+def err(msg):
+    #LOG_FILE.write(u'{0} ERR: {1}\n'.format(datetime.now(), msg))
+    print u'\033[1;31m{0}\033[m'.format(msg)
+
+def send(lines):
+    if not lines:
+        return
+    if type(lines) in [str, unicode]:
+        lines = [lines]
+    for line in lines:
+        if not line:
+            continue
+        # anti flood
+        STORAGE.expire(NICK, 2)
+        STORAGE.incr(NICK)
+        STORAGE.expire(NICK, 1)
+        if STORAGE.get(NICK) > 10:
+            sleep(1)
+        log(line)
+        # everything should be unicode up the here, then we're sending a
+        # string to the socket.
+        SOCKET.sendall('{0}\r\n'.format(line.encode('utf-8')))
+
+def run():
+    # Persistent, updated dictionary
+    DATA = {
+        'time': datetime.now(),
+        'nick': NICK,
+        'admins': ADMINS,
+        'raw': '',
+    }
+    readbuffer = ''
+    ready = False
+    while True:
+        readbuffer = readbuffer + SOCKET.recv(1024)
+        lines = readbuffer.split('\n')
+        readbuffer = lines.pop()
+        for line in lines:
+            # everything should be unicode from here
+            line = unicode(line, 'utf-8').strip()
+            log(line)
+            words = line.split(' ')
+            # Don't ping timeout
+            if words[0:1] == ['PING'] and words[1:]:
+                log(u'PONG {0}'.format(words[1]))
+                SOCKET.sendall(
+                    u'PONG {0}\r\n'.format(words[1].encode('utf-8'))
+                )
+            # Wait for end of MOTD
+            if not ready and words[1:2] in (['004'], ['376']):
+                ready = True
+                for channel in CHANNELS:
+                    log(u'JOIN {0}'.format(channel))
+                    SOCKET.sendall(
+                        u'JOIN {0}\r\n'.format(channel.encode('utf-8'))
+                    )
+            if not ready:
+                continue
+            DATA.update({'time': datetime.now(), 'raw': line})
+            # HOTLOAD!
+            try:
+                funcs = inspect.getmembers(
+                    imp.load_source("funcs", FUNC_FILE), inspect.isfunction
+                )
+            except Exception as ex:
+                err(u'ERROR: imp {0}: {1}\n{2}'.format(
+                    ex.__class__.__name__, ex, format_exc()
+                ))
+                continue
+            for name, func in funcs:
+                if not name.startswith('cmd_'):
+                    continue
+                try:
+                    send(func(DATA))
+                except Exception as ex:
+                    err(u'ERROR: {0} {1}\n{2}'.format(
+                        ex.__class__.__name__, ex, format_exc()
+                    ))
+            del sys.modules["funcs"]
+
+if __name__ == '__main__':
+    try:
+        run()
+    except KeyboardInterrupt:
+        SOCKET.sendall(u'QUIT :Why are you doing this, Hal?\r\n')
+        SOCKET.close()
+else:
+    SOCKET.close()
