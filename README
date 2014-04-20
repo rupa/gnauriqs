@@ -1,0 +1,18 @@
+Minimum dynamically modifiable IRC bot.
+
+* Edit and run gnaurics.
+
+* For each message from the server, any functions in funcs.py that start with
+  'cmd_' will be executed, and passed a dictionary:
+  {
+      'time': datetime.now(),
+      'nick': NICK,
+      'admins': ADMINS,
+      'raw': MESSAGE,
+  }
+  Response from these functions should be a string or list containing valid
+  IRC commands, or None. We do take care of '\r\n' termination.
+
+* Edits to funcs.py are picked up without restarting.
+
+* You do the rest! You do speak RFC 1459, right?
