@@ -7,5 +7,5 @@
 }
 '''
 
-cmd_main(data):
+def cmd_main(data):
     print data
