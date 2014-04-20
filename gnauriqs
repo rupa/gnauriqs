@@ -85,7 +85,7 @@ def run():
                     u'PONG {0}\r\n'.format(words[1].encode('utf-8'))
                 )
             # Wait for end of MOTD
-            if not ready and words[1:2] in (['004'], ['376']):
+            if not ready and words[1:2] == ['376']:
                 ready = True
                 for channel in CHANNELS:
                     log(u'JOIN {0}'.format(channel))
