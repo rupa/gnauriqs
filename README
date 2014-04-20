@@ -1,9 +1,10 @@
 Minimum dynamically modifiable IRC bot.
 
-* Edit and run gnaurics.
+* Check dependencies, edit and run gnaurics.
 
 * For each message from the server, any functions in funcs.py that start with
-  'cmd_' will be executed, and passed a dictionary:
+  'cmd_' will be executed, and passed a dictionary. This dictionary is
+  psrsistent, can be used for storage. The following keys are maintained:
   {
       'time': datetime.now(),
       'nick': NICK,
