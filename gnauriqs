@@ -19,6 +19,7 @@ NICK = os.path.basename(__file__)
 REAL_NAME = ''
 CHANNELS = []
 ADMINS = []
+# End settings
 
 PATH = os.path.abspath(os.path.dirname(sys.argv[0]))
 
