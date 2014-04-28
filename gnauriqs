@@ -14,7 +14,8 @@ from traceback import format_exc
 from redis import StrictRedis
 
 PATH = os.path.abspath(os.path.dirname(sys.argv[0]))
-FUNC_FILE = '{0}/funcs.py'.format(PATH)
+CONF_FILE = os.path.join(PATH, 'config.json')
+FUNC_FILE = os.path.join(PATH, 'funcs.py')
 STORAGE = StrictRedis()
 
 def log(msg):
@@ -99,11 +100,11 @@ def run():
                     ))
             del sys.modules["funcs"]
 
-if not os.path.exists('config.json'):
-    err(u'config.json not found.')
+if not os.path.exists(CONF_FILE):
+    err(u'{0} not found.'.format(CONF_FILE))
     sys.exit()
 
-with open('config.json', 'r') as config:
+with open(CONF_FILE, 'r') as config:
     try:
         conf = json.loads(config.read())[sys.argv[1]]
         SERVER = conf['server']
