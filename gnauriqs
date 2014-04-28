@@ -2,6 +2,7 @@
 
 import imp
 import inspect
+import json
 import os
 import socket
 import sys
@@ -12,39 +13,20 @@ from traceback import format_exc
 
 from redis import StrictRedis
 
-# Settings
-HOST = ''
-PORT = 6667
-NICK = os.path.basename(__file__)
-REAL_NAME = ''
-CHANNELS = []
-ADMINS = []
-# End settings
-
 PATH = os.path.abspath(os.path.dirname(sys.argv[0]))
-
 FUNC_FILE = '{0}/funcs.py'.format(PATH)
-
 STORAGE = StrictRedis()
 
-SOCKET = socket.create_connection((HOST, PORT))
-SOCKET.send('NICK {0}\r\n'.format(NICK))
-SOCKET.send('USER {0} 0 * :{1}\r\n'.format(NICK, REAL_NAME))
-
-#LOG_FILE = open('bawt.log', 'a')
-
 def log(msg):
-    #LOG_FILE.write(u'{0} {1}\n'.format(datetime.now(), msg))
-    print u'{0}'.format(msg)
+    print u'{0} {1}'.format(datetime.now(), msg)
 
 def err(msg):
-    #LOG_FILE.write(u'{0} ERR: {1}\n'.format(datetime.now(), msg))
-    print u'\033[1;31m{0}\033[m'.format(msg)
+    print u'\033[1;31m{0} {1}\033[m'.format(datetime.now(), msg)
 
 def send(lines):
     if not lines:
         return
-    if type(lines) in [str, unicode]:
+    if not hasattr(lines, '__iter__'): # or should I use types
         lines = [lines]
     for line in lines:
         if not line:
@@ -58,7 +40,7 @@ def send(lines):
         log(line)
         # everything should be unicode up the here, then we're sending a
         # string to the socket.
-        SOCKET.sendall('{0}\r\n'.format(line.encode('utf-8')))
+        SOCKET.sendall('{0}\r\n'.format(line.encode('utf-8', errors='ignore')))
 
 def run():
     # Persistent, updated dictionary
@@ -76,7 +58,7 @@ def run():
         readbuffer = lines.pop()
         for line in lines:
             # everything should be unicode from here
-            line = unicode(line, 'utf-8').strip()
+            line = unicode(line, 'utf-8', errors='ignore').strip()
             log(line)
             words = line.split(' ')
             # Don't ping timeout
@@ -85,8 +67,8 @@ def run():
                 SOCKET.sendall(
                     u'PONG {0}\r\n'.format(words[1].encode('utf-8'))
                 )
-            # Wait for end of MOTD
-            if not ready and words[1:2] == ['376']:
+            # Wait for ready/end of MOTD
+            if not ready and words[1:2] in (['004'], ['376']):
                 ready = True
                 for channel in CHANNELS:
                     log(u'JOIN {0}'.format(channel))
@@ -117,11 +99,30 @@ def run():
                     ))
             del sys.modules["funcs"]
 
-if __name__ == '__main__':
+if not os.path.exists('config.json'):
+    err(u'config.json not found.')
+    sys.exit()
+
+with open('config.json', 'r') as config:
     try:
-        run()
-    except KeyboardInterrupt:
-        SOCKET.sendall(u'QUIT :Why are you doing this, Hal?\r\n')
-        SOCKET.close()
-else:
-    SOCKET.close()
+        conf = json.loads(config.read())[sys.argv[1]]
+        SERVER = conf['server']
+        PORT = int(conf['port'])
+        NICK = conf['nick']
+        REAL_NAME = conf['real_name']
+        CHANNELS = conf['channels']
+        ADMINS = conf['admins']
+    except Exception as ex:
+        err(u'{0}'.format(ex))
+        sys.exit()
+
+SOCKET = socket.create_connection((SERVER, PORT))
+SOCKET.send('NICK {0}\r\n'.format(NICK))
+SOCKET.send('USER {0} 0 * :{1}\r\n'.format(NICK, REAL_NAME))
+
+try:
+    run()
+except KeyboardInterrupt:
+    SOCKET.sendall(u'QUIT :Why are you doing this, Hal?\r\n')
+
+SOCKET.close()

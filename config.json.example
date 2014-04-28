@@ -1,0 +1,16 @@
+{
+    "TAG": {
+        "server": "IRC.EXAMPLE.ORG",
+        "port": "6667",
+        "nick": "NICK",
+        "real_name": "REAL NAME",
+        "channels": [
+            "#CHANNEL1
+            "#CHANNEL2"
+        ],
+        "admins": [
+            "NICK1",
+            "NICK2"
+        ]
+    }
+}
