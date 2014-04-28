@@ -4,15 +4,16 @@ Minimum dynamically modifiable IRC bot.
 
 * For each message from the server, any functions in funcs.py that start with
   'cmd_' will be executed, and passed a dictionary. This dictionary is
-  psrsistent, can be used for storage. The following keys are maintained:
+  persistent, and can be used for storage. The following keys are maintained:
   {
       'time': datetime.now(),
       'nick': NICK,
       'admins': ADMINS,
       'raw': MESSAGE,
   }
-  Response from these functions should be a string or list containing valid
-  IRC commands, or None. We do take care of '\r\n' termination.
+  Response from these functions should be a string or iterable containing valid
+  IRC commands that will be passed to the server, or None. We do take care of
+  '\r\n' termination.
 
 * Edits to funcs.py are picked up without restarting.
 
