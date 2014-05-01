@@ -2,10 +2,11 @@
     "TAG": {
         "server": "IRC.EXAMPLE.ORG",
         "port": "6667",
+        "password": "",
         "nick": "NICK",
         "real_name": "REAL NAME",
         "channels": [
-            "#CHANNEL1
+            "#CHANNEL1",
             "#CHANNEL2"
         ],
         "admins": [

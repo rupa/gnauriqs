@@ -109,6 +109,7 @@ with open(CONF_FILE, 'r') as config:
         conf = json.loads(config.read())[sys.argv[1]]
         SERVER = conf['server']
         PORT = int(conf['port'])
+        PASSWORD = conf['password']
         NICK = conf['nick']
         REAL_NAME = conf['real_name']
         CHANNELS = conf['channels']
@@ -118,6 +119,8 @@ with open(CONF_FILE, 'r') as config:
         sys.exit()
 
 SOCKET = socket.create_connection((SERVER, PORT))
+if PASSWORD:
+    SOCKET.send('PASS {0}\r\n'.format(PASSWORD))
 SOCKET.send('NICK {0}\r\n'.format(NICK))
 SOCKET.send('USER {0} 0 * :{1}\r\n'.format(NICK, REAL_NAME))
 
